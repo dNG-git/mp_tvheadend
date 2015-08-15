@@ -33,11 +33,13 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from time import time
 
+from dNG.pas.data.settings import Settings
 from dNG.pas.data.tasks.memory import Memory as MemoryTasks
 from dNG.pas.data.upnp.resources.mp_entry_pvr_recording import MpEntryPvrRecording
 from dNG.pas.database.nothing_matched_exception import NothingMatchedException
 from dNG.pas.database.transaction_context import TransactionContext
 from dNG.pas.net.tvheadend.client import Client
+from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.value_exception import ValueException
 from dNG.pas.tasks.abstract_lrt_hook import AbstractLrtHook
 from .resource_metadata_refresh import ResourceMetadataRefresh
@@ -83,12 +85,10 @@ UPnP container resource
 		self.context_id = "dNG.pas.tasks.mp.ResourcePvrRecordingTvheadendRefresh"
 	#
 
-	def _get_recording_details(self, message):
+	def _get_recording_details(self):
 	#
 		"""
 Returns EPG details for the recording identified by the given HTSP message.
-
-:param message: HTSP message
 
 :return: (dict) EPG data on match; None otherwise
 :since:  v0.1.00
@@ -98,27 +98,27 @@ Returns EPG details for the recording identified by the given HTSP message.
 
 		client = None
 
-		if (("stop" not in message or message['stop'] >= time())
-		    and "eventId" in message
+		if (("stop" not in self.message or self.message['stop'] >= time())
+		    and "eventId" in self.message
 		   ):
 		#
 			client = Client.get_instance()
 
-			try: _return = client.get_epg_event_details(message['eventId'])
+			try: _return = client.get_epg_event_details(self.message['eventId'])
 			except ValueException: pass
 		#
 
-		if (_return is None and "channel" in message and "start" in message and "stop" in message):
+		if (_return is None and "channel" in self.message and "start" in self.message and "stop" in self.message):
 		#
 			if (client is None): client = Client.get_instance()
 
 			try:
 			#
-				_return = client.get_epg_details(message['channel'],
-				                                      message['start'],
-				                                      message['stop'],
-				                                      message.get("title")
-				                                     )
+				_return = client.get_epg_details(self.message['channel'],
+				                                 self.message['start'],
+				                                 self.message['stop'],
+				                                 self.message.get("title")
+				                                )
 			#
 			except ValueException: pass
 		#
@@ -137,24 +137,26 @@ Processes recording details and builds the internal title used for sorting.
 :since:  v0.1.00
 		"""
 
-		_return = recording_details
+		_return = None
 
-		if ("title" in _return):
+		if (Settings.get("mp_tvheadend_recording_details_custom_processing", False)):
 		#
-			_return['resource_title'] = recording_details['title']
+			_return = Hook.call("dNG.mp.upnp.tvheadend.MpPvrRecording.processRecordingDetails", details = recording_details)
+		#
 
-			if ("summary" in recording_details
-			    and "\n" not in recording_details['summary']
-			    and len(recording_details['summary']) < 255
-			   ):
-			#
-				_return['series'] = recording_details['title']
-				_return['title'] = recording_details['summary']
+		if (_return is None and "title" in recording_details):
+		#
+			_return = recording_details
 
-				_return['resource_title'] = "{0} - {1}".format(recording_details['series'],
-				                                               recording_details['title']
-				                                              )
+			if ("subtitle" in recording_details):
 			#
+				_return['title'] = "{0} - {1}".format(recording_details['title'],
+				                                      recording_details['subtitle']
+				                                     )
+
+				_return['resource_title'] = recording_details['title']
+			#
+			elif ("resource_title" not in _return): _return['resource_title'] = recording_details['title']
 		#
 
 		return _return
@@ -171,12 +173,19 @@ Hook execution
 		_id = self.message['id']
 		entry_id = None
 		is_refreshable = False
-		recording_details = self._get_recording_details(self.message)
 		recording_status = ResourcePvrRecordingTvheadendRefresh._get_recording_status(self.message)
 		resource = "tvheadend-file:///{0}".format(_id)
 
 		try:
 		#
+			recording_details = (self.message
+			                     if ("description" in self.message
+			                         or "subtitle" in self.message
+			                         or "summary" in self.message
+			                        ) else
+			                     self._get_recording_details()
+			                    )
+
 			entry = MpEntryPvrRecording.load_resource(resource)
 			entry_id = entry.get_resource_id()
 
@@ -210,7 +219,9 @@ Hook execution
 				if ("resource_title" in recording_details): entry_data['resource_title'] = recording_details['resource_title']
 				if ("series" in recording_details): entry_data['series'] = recording_details['series']
 				if ("description" in recording_details): entry_data['description'] = recording_details['description']
+
 				if ("summary" in recording_details): entry_data['summary'] = recording_details['summary']
+				elif ("subtitle" in recording_details): entry_data['summary'] = recording_details['subtitle']
 			#
 
 			if (len(entry_data) > 0):
