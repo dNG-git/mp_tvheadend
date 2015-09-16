@@ -82,10 +82,10 @@ File handle position calculated
 	def close(self):
 	#
 		"""
-Closes all related resource pointers for the active streamer session.
+python.org: Flush and close this stream.
 
 :return: (bool) True on success
-:since: v0.1.00
+:since:  v0.1.00
 		"""
 
 		with self._lock:
@@ -207,13 +207,13 @@ Opens a streamer session for the given URL.
 		return _return
 	#
 
-	def read(self, _bytes = None):
+	def read(self, n = None):
 	#
 		"""
-Reads from the current streamer session.
+python.org: Read up to n bytes from the object and return them.
 
-:param _bytes: How many bytes to read from the current position (0 means
-               until EOF)
+:param n: How many bytes to read from the current position (0 means until
+          EOF)
 
 :return: (bytes) Data; None if EOF
 :since:  v0.1.00
@@ -221,14 +221,14 @@ Reads from the current streamer session.
 
 		_return = None
 
-		if (_bytes is None): _bytes = self.io_chunk_size
+		if (n is None): n = self.io_chunk_size
 		client = Client.get_instance()
 
 		with self._lock:
 		#
 			if (self.file_id is None): raise IOException("Streamer resource is invalid")
 
-			_return = (client.fileRead(id = self.file_id, size = _bytes)['data']
+			_return = (client.fileRead(id = self.file_id, size = n)['data']
 			           if (client.is_active()) else
 			           None
 			          )
@@ -242,15 +242,15 @@ Reads from the current streamer session.
 	def seek(self, offset):
 	#
 		"""
-Seek to a given offset.
+python.org: Change the stream position to the given byte offset.
 
 :param offset: Seek to the given offset
 
-:return: (bool) True on success
+:return: (int) Return the new absolute position.
 :since:  v0.1.00
 		"""
 
-		_return = False
+		_return = -1
 
 		client = Client.get_instance()
 		if (not client.is_active()): raise IOException("Tvheadend client is not listening")
@@ -263,7 +263,7 @@ Seek to a given offset.
 			                                     offset = offset, whence = "SEEK_SET"
 			                                    )['offset']
 
-			_return = True
+			_return = self.file_position
 		#
 
 		return _return
