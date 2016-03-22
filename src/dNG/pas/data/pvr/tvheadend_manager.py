@@ -35,6 +35,7 @@ from weakref import ref
 
 from dNG.pas.data.tasks.memory import Memory as MemoryTasks
 from dNG.pas.data.upnp.resources.mp_entry_pvr_recording import MpEntryPvrRecording
+from dNG.pas.database.connection import Connection
 from dNG.pas.net.tvheadend.client import Client
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.thread_lock import ThreadLock
@@ -141,21 +142,24 @@ Called for "dNG.mp.tvheadend.Client.onEvent"
 			#
 			elif (method == "initialSyncCompleted"):
 			#
-				container = self.get_container()
-				children = container.get_content_list_of_type(MpEntryPvrRecording.TYPE_CDS_ITEM)
-
-				for entry in children:
+				with Connection.get_instance():
 				#
-					if (isinstance(entry, MpEntryPvrRecording)):
-					#
-						entry_data = entry.get_data_attributes("id", "resource")
+					container = self.get_container()
+					children = container.get_content_list_of_type(MpEntryPvrRecording.TYPE_CDS_ITEM)
 
-						if (entry_data['resource'] not in self.recordings_cache):
+					for entry in children:
+					#
+						if (isinstance(entry, MpEntryPvrRecording)):
 						#
-							MemoryTasks.get_instance().add("dNG.pas.tasks.mp.ResourceDeleter.{0}".format(entry_data['id']),
-							                               ResourceDeleter(entry_data['resource']),
-							                               0
-							                              )
+							entry_data = entry.get_data_attributes("id", "resource")
+
+							if (entry_data['resource'] not in self.recordings_cache):
+							#
+								MemoryTasks.get_instance().add("dNG.pas.tasks.mp.ResourceDeleter.{0}".format(entry_data['id']),
+								                               ResourceDeleter(entry_data['resource']),
+								                               0
+								                              )
+							#
 						#
 					#
 				#
