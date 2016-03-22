@@ -239,8 +239,7 @@ Hook execution
 
 			entry = MpEntryPvrRecording()
 
-			entry_data = { "time_sortable": self.message['start'],
-			               "title": recording_details['title'],
+			entry_data = { "title": recording_details['title'],
 			               "cds_type": MpEntryPvrRecording.DB_CDS_TYPE_ITEM,
 			               "resource_title": recording_details['resource_title'],
 			               "resource": resource,
