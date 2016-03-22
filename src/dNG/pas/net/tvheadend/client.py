@@ -65,7 +65,7 @@ Client for Tvheadend.
              GNU General Public License 2
 	"""
 
-	HTSP_VERSION = 14
+	HTSP_VERSION = 25
 	"""
 HTS protocol version
 	"""
@@ -267,6 +267,8 @@ Checks the session and authenticates this client at the Tvheadend server.
 					                        "clientversion": "#echo(mpTvheadendVersion)#"
 					                      }
 					                     )
+
+					if (response['htspversion'] < 8): raise IOException("Tvheadend indicated HTSP version is too old")
 
 					self.channel_server_method_supported = (response['htspversion'] >= 14)
 					self.server_transcoding_supported = (response['htspversion'] >= 11)
