@@ -64,7 +64,11 @@ Register plugin hooks.
 	"""
 
 	Settings.read_file("{0}/settings/mp/tvheadend.json".format(Settings.get("path_data")))
-	if (Settings.get("mp_tvheadend_enabled", False)): Hook.register("dNG.mp.pvr.Manager.getSingletons", get_singletons)
+
+	if (Settings.get("mp_tvheadend_enabled", False)):
+	#
+		Hook.register("dNG.mp.pvr.Manager.getSingletons", get_singletons)
+	#
 #
 
 def unregister_plugin():
