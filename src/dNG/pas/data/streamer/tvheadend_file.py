@@ -84,8 +84,7 @@ File handle position calculated
 		"""
 python.org: Flush and close this stream.
 
-:return: (bool) True on success
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
 		with self._lock:
@@ -95,13 +94,9 @@ python.org: Flush and close this stream.
 			if (client.is_active() and self.file_id is not None):
 			#
 				try: client.fileClose(id = self.file_id)
-				except IOException: pass
-
-				self.file_id = None
+				finally: self.file_id = None
 			#
 		#
-
-		return True
 	#
 
 	def get_size(self):
