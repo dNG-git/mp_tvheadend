@@ -31,14 +31,14 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.pas.data.binary import Binary
+from dNG.data.binary import Binary
 
 class Htsbin(Binary.BYTES_TYPE):
 #
 	"""
 Wrapper for a binary field value of an HTSMSG encoded message.
 
-:author:     direct Netware Group
+:author:     direct Netware Group et al.
 :copyright:  direct Netware Group - All rights reserved
 :package:    mp
 :subpackage: tvheadend

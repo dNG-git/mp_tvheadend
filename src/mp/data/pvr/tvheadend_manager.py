@@ -33,14 +33,16 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from weakref import ref
 
-from dNG.pas.data.tasks.memory import Memory as MemoryTasks
-from dNG.pas.data.upnp.resources.mp_entry_pvr_recording import MpEntryPvrRecording
-from dNG.pas.database.connection import Connection
-from dNG.pas.net.tvheadend.client import Client
-from dNG.pas.plugins.hook import Hook
-from dNG.pas.runtime.thread_lock import ThreadLock
-from dNG.pas.tasks.mp.resource_deleter import ResourceDeleter
-from dNG.pas.tasks.mp.resource_pvr_recording_tvheadend_refresh import ResourcePvrRecordingTvheadendRefresh
+from dNG.data.tasks.memory import Memory as MemoryTasks
+from dNG.data.upnp.resources.mp_entry_pvr_recording import MpEntryPvrRecording
+from dNG.database.connection import Connection
+from dNG.plugins.hook import Hook
+from dNG.runtime.thread_lock import ThreadLock
+
+from mp.net.tvheadend.client import Client
+from mp.tasks.resource_deleter import ResourceDeleter
+from mp.tasks.resource_pvr_recording_tvheadend_refresh import ResourcePvrRecordingTvheadendRefresh
+
 from .abstract_manager import AbstractManager
 
 class TvheadendManager(AbstractManager):
@@ -48,7 +50,7 @@ class TvheadendManager(AbstractManager):
 	"""
 Tvheadend PVR manager.
 
-:author:     direct Netware Group
+:author:     direct Netware Group et al.
 :copyright:  direct Netware Group - All rights reserved
 :package:    mp
 :subpackage: tvheadend
@@ -89,7 +91,7 @@ Cached list of synchronized recordings
 	def _handle_event(self, params, last_return = None):
 	#
 		"""
-Called for "dNG.mp.tvheadend.Client.onEvent"
+Called for "mp.pvr.tvheadend.Client.onEvent"
 
 :param params: Parameter specified
 :param last_return: The return value from the last hook called.
@@ -107,7 +109,7 @@ Called for "dNG.mp.tvheadend.Client.onEvent"
 			#
 				_id = message['id']
 
-				MemoryTasks.get_instance().add("dNG.pas.tasks.mp.ResourcePvrRecordingTvheadendRefresh.{0}".format(_id),
+				MemoryTasks.get_instance().add("mp.tasks.ResourcePvrRecordingTvheadendRefresh.{0}".format(_id),
 				                               ResourcePvrRecordingTvheadendRefresh(self.get_container(), message, self.get_name()),
 				                               0
 				                              )
@@ -116,16 +118,16 @@ Called for "dNG.mp.tvheadend.Client.onEvent"
 				# Thread safety
 					with self._lock:
 					#
-						if (self.recordings_cache is not None): self.recordings_cache.append("tvheadend-file:///{0}".format(_id))
+						if (self.recordings_cache is not None): self.recordings_cache.append("{0}:///{1}".format(self.get_vfs_scheme(), _id))
 					#
 				#
 			#
 			elif (method == "dvrEntryDelete"):
 			#
 				_id = message['id']
-				resource = "tvheadend-file:///{0}".format(_id)
+				resource = "{0}:///{1}".format(self.get_vfs_scheme(), _id)
 
-				MemoryTasks.get_instance().add("dNG.pas.tasks.mp.ResourceDeleter.{0}".format(_id),
+				MemoryTasks.get_instance().add("mp.tasks.ResourceDeleter.{0}".format(_id),
 				                               ResourceDeleter(resource),
 				                               0
 				                              )
@@ -147,18 +149,21 @@ Called for "dNG.mp.tvheadend.Client.onEvent"
 					container = self.get_container()
 					children = container.get_content_list_of_type(MpEntryPvrRecording.TYPE_CDS_ITEM)
 
-					for entry in children:
+					with self._lock:
 					#
-						if (isinstance(entry, MpEntryPvrRecording)):
+						for entry in children:
 						#
-							entry_data = entry.get_data_attributes("id", "resource")
-
-							if (entry_data['resource'] not in self.recordings_cache):
+							if (isinstance(entry, MpEntryPvrRecording)):
 							#
-								MemoryTasks.get_instance().add("dNG.pas.tasks.mp.ResourceDeleter.{0}".format(entry_data['id']),
-								                               ResourceDeleter(entry_data['resource']),
-								                               0
-								                              )
+								entry_data = entry.get_data_attributes("id", "vfs_url")
+
+								if (entry_data['vfs_url'] not in self.recordings_cache):
+								#
+									MemoryTasks.get_instance().add("mp.tasks.ResourceDeleter.{0}".format(entry_data['id']),
+									                               ResourceDeleter(entry_data['vfs_url']),
+									                               0
+									                              )
+								#
 							#
 						#
 					#
@@ -167,6 +172,18 @@ Called for "dNG.mp.tvheadend.Client.onEvent"
 				with self._lock: self.recordings_cache = None
 			#
 		#
+	#
+
+	def get_vfs_scheme(self):
+	#
+		"""
+Returns the PVR manager VFS scheme.
+
+:return: (str) PVR manager VFS scheme
+:since:  v0.1.00
+		"""
+
+		return "x-tvheadend"
 	#
 
 	def start(self, params = None, last_return = None):
@@ -181,7 +198,7 @@ Starts the activity of this manager.
 :since:  v0.1.00
 		"""
 
-		Hook.register("dNG.mp.tvheadend.Client.onEvent", self._handle_event)
+		Hook.register("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
 
 		self.client = Client.get_instance()
 		self.client.start()
@@ -211,7 +228,7 @@ Stops the activity of this manager.
 			self.client.stop()
 			self.client = None
 
-			Hook.unregister("dNG.mp.tvheadend.Client.onEvent", self._handle_event)
+			Hook.unregister("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
 		#
 
 		return last_return

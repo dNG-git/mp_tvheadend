@@ -38,25 +38,26 @@ import re
 import socket
 import threading
 
-from dNG.pas.data.binary import Binary
-from dNG.pas.data.settings import Settings
-from dNG.pas.data.traced_exception import TracedException
-from dNG.pas.data.pvr.tvheadend.htsbin import Htsbin
-from dNG.pas.data.pvr.tvheadend.htsmsg import Htsmsg
-from dNG.pas.module.named_loader import NamedLoader
-from dNG.pas.plugins.hook import Hook
-from dNG.pas.runtime.instance_lock import InstanceLock
-from dNG.pas.runtime.io_exception import IOException
-from dNG.pas.runtime.thread import Thread
-from dNG.pas.runtime.thread_lock import ThreadLock
-from dNG.pas.runtime.value_exception import ValueException
+from dNG.data.binary import Binary
+from dNG.data.settings import Settings
+from dNG.data.traced_exception import TracedException
+from dNG.module.named_loader import NamedLoader
+from dNG.plugins.hook import Hook
+from dNG.runtime.instance_lock import InstanceLock
+from dNG.runtime.io_exception import IOException
+from dNG.runtime.thread import Thread
+from dNG.runtime.thread_lock import ThreadLock
+from dNG.runtime.value_exception import ValueException
+
+from mp.data.pvr.tvheadend.htsbin import Htsbin
+from mp.data.pvr.tvheadend.htsmsg import Htsmsg
 
 class Client(asyncore.dispatcher):
 #
 	"""
 Client for Tvheadend.
 
-:author:     direct Netware Group
+:author:     direct Netware Group et al.
 :copyright:  (C) direct Netware Group - All rights reserved
 :package:    mp
 :subpackage: tvheadend
@@ -107,7 +108,7 @@ Authentication digest
 		"""
 Tvheadend HTSP getChannel requires version 14 or newer
 		"""
-		self.channels_cache = None
+		self.channels_cache = { }
 		"""
 Tvheadend channels cache
 		"""
@@ -127,7 +128,7 @@ Local data handle
 		"""
 Thread safety lock
 		"""
-		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
+		self.log_handler = NamedLoader.get_singleton("dNG.data.logging.LogHandler", False)
 		"""
 The LogHandler is called whenever debug messages should be logged or errors
 happened.
@@ -288,6 +289,7 @@ Checks the session and authenticates this client at the Tvheadend server.
 					#
 
 					self.authenticated = True
+					if (not self.channel_server_method_supported): Hook.register("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
 				#
 			#
 		#
@@ -434,7 +436,7 @@ python.org: Called when the socket is closed.
 	def _handle_event(self, params, last_return = None):
 	#
 		"""
-Called for "dNG.mp.tvheadend.Client.onEvent"
+Called for "mp.pvr.tvheadend.Client.onEvent"
 
 :param params: Parameter specified
 :param last_return: The return value from the last hook called.
@@ -491,7 +493,7 @@ on the channel's socket will succeed.
 			elif ("method" in message):
 			#
 				Thread(target = Hook.call,
-				       args = ( "dNG.mp.tvheadend.Client.onEvent", ),
+				       args = ( "mp.pvr.tvheadend.Client.onEvent", ),
 				       kwargs = { "message": message }
 				      ).start()
 			#
@@ -579,8 +581,9 @@ Starts the prepared dispatcher in a new thread.
 
 			if (not is_already_active):
 			#
-				if (not self.channel_server_method_supported): Hook.register("dNG.mp.tvheadend.Client.onEvent", self._handle_event)
 				Hook.register("dNG.pas.Status.onShutdown", self.thread_stop)
+
+				self.channels_cache = { }
 
 				if (self.seq > 0):
 				#
@@ -654,8 +657,8 @@ Stops the listener and unqueues all running sockets.
 				self.active = False
 				self.authenticated = False
 
-				Hook.unregister("dNG.mp.tvheadend.Client.onEvent", self._handle_event)
 				Hook.unregister("dNG.pas.Status.onShutdown", self.thread_stop)
+				if (not self.channel_server_method_supported): Hook.unregister("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
 
 				try: self.close()
 				except Exception: pass

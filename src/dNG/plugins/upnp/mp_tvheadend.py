@@ -31,14 +31,15 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.pas.data.settings import Settings
-from dNG.pas.data.pvr.tvheadend_manager import TvheadendManager
-from dNG.pas.plugins.hook import Hook
+from dNG.data.settings import Settings
+from dNG.plugins.hook import Hook
+
+from mp.data.pvr.tvheadend_manager import TvheadendManager
 
 def get_singletons(params, last_return = None):
 #
 	"""
-Called for "dNG.mp.pvr.Manager.getSingletons"
+Called for "mp.pvr.Manager.getSingletons"
 
 :param params: Parameter specified
 :param last_return: The return value from the last hook called.
@@ -67,7 +68,7 @@ Register plugin hooks.
 
 	if (Settings.get("mp_tvheadend_enabled", False)):
 	#
-		Hook.register("dNG.mp.pvr.Manager.getSingletons", get_singletons)
+		Hook.register("mp.pvr.Manager.getSingletons", get_singletons)
 	#
 #
 
@@ -79,7 +80,7 @@ Unregister plugin hooks.
 :since: v0.1.00
 	"""
 
-	Hook.unregister("dNG.mp.pvr.Manager.getSingletons", get_singletons)
+	Hook.unregister("mp.pvr.Manager.getSingletons", get_singletons)
 #
 
 ##j## EOF

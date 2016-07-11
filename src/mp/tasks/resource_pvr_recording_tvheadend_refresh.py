@@ -33,15 +33,18 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from time import time
 
-from dNG.pas.data.settings import Settings
-from dNG.pas.data.tasks.memory import Memory as MemoryTasks
-from dNG.pas.data.upnp.resources.mp_entry_pvr_recording import MpEntryPvrRecording
-from dNG.pas.database.nothing_matched_exception import NothingMatchedException
-from dNG.pas.database.transaction_context import TransactionContext
-from dNG.pas.net.tvheadend.client import Client
-from dNG.pas.plugins.hook import Hook
-from dNG.pas.runtime.value_exception import ValueException
-from dNG.pas.tasks.abstract_lrt_hook import AbstractLrtHook
+from dNG.data.settings import Settings
+from dNG.data.tasks.memory import Memory as MemoryTasks
+from dNG.data.upnp.resources.mp_entry_pvr_recording import MpEntryPvrRecording
+from dNG.database.connection import Connection
+from dNG.database.nothing_matched_exception import NothingMatchedException
+from dNG.database.transaction_context import TransactionContext
+from dNG.plugins.hook import Hook
+from dNG.runtime.value_exception import ValueException
+from dNG.tasks.abstract_lrt_hook import AbstractLrtHook
+
+from mp.net.tvheadend.client import Client
+
 from .resource_metadata_refresh import ResourceMetadataRefresh
 
 class ResourcePvrRecordingTvheadendRefresh(AbstractLrtHook):
@@ -50,7 +53,7 @@ class ResourcePvrRecordingTvheadendRefresh(AbstractLrtHook):
 "ResourcePvrRecordingTvheadendRefresh" is responsible of refreshing the
 resource's metadata based on the TvHeadend message.
 
-:author:     direct Netware Group
+:author:     direct Netware Group et al.
 :copyright:  direct Netware Group - All rights reserved
 :package:    mp
 :subpackage: core
@@ -82,7 +85,7 @@ TvHeadend recorder name
 UPnP container resource
 		"""
 
-		self.context_id = "dNG.pas.tasks.mp.ResourcePvrRecordingTvheadendRefresh"
+		self.context_id = "mp.tasks.ResourcePvrRecordingTvheadendRefresh"
 	#
 
 	def _get_recording_details(self):
@@ -141,7 +144,7 @@ Processes recording details and builds the internal title used for sorting.
 
 		if (Settings.get("mp_tvheadend_recording_details_custom_processing", False)):
 		#
-			_return = Hook.call("dNG.mp.upnp.tvheadend.MpPvrRecording.processRecordingDetails", details = recording_details)
+			_return = Hook.call("mp.pvr.tvheadend.MpPvrRecording.processRecordingDetails", details = recording_details)
 		#
 
 		if (_return is None and "title" in recording_details):
@@ -162,6 +165,7 @@ Processes recording details and builds the internal title used for sorting.
 		return _return
 	#
 
+	@Connection.wrap_callable
 	def _run_hook(self):
 	#
 		"""
@@ -174,7 +178,7 @@ Hook execution
 		entry_id = None
 		is_refreshable = False
 		recording_status = ResourcePvrRecordingTvheadendRefresh._get_recording_status(self.message)
-		resource = "tvheadend-file:///{0}".format(_id)
+		vfs_url = "x-tvheadend:///{0}".format(_id)
 
 		try:
 		#
@@ -186,7 +190,7 @@ Hook execution
 			                     self._get_recording_details()
 			                    )
 
-			entry = MpEntryPvrRecording.load_resource(resource)
+			entry = MpEntryPvrRecording.load_resource(vfs_url)
 			entry_id = entry.get_resource_id()
 
 			entry_data = entry.get_data_attributes("refreshable", "recording_status")
@@ -218,6 +222,7 @@ Hook execution
 				if ("title" in recording_details): entry_data['title'] = recording_details['title']
 				if ("resource_title" in recording_details): entry_data['resource_title'] = recording_details['resource_title']
 				if ("series" in recording_details): entry_data['series'] = recording_details['series']
+				if ("episodeNumber" in recording_details): entry_data['episode'] = recording_details['episodeNumber']
 				if ("description" in recording_details): entry_data['description'] = recording_details['description']
 
 				if ("summary" in recording_details): entry_data['summary'] = recording_details['summary']
@@ -240,9 +245,8 @@ Hook execution
 			entry = MpEntryPvrRecording()
 
 			entry_data = { "title": recording_details['title'],
-			               "cds_type": MpEntryPvrRecording.DB_CDS_TYPE_ITEM,
+			               "vfs_url": vfs_url,
 			               "resource_title": recording_details['resource_title'],
-			               "resource": resource,
 			               "refreshable": is_refreshable,
 			               "duration": (self.message['stop'] - self.message['start']),
 			               "series": recording_details.get("series"),
@@ -272,9 +276,11 @@ Hook execution
 			entry_id = entry.get_resource_id()
 		#
 
+		entry.close()
+
 		if (is_refreshable):
 		#
-			MemoryTasks.get_instance().add("dNG.pas.tasks.mp.ResourceMetadataRefresh.{0}".format(entry_id),
+			MemoryTasks.get_instance().add("mp.tasks.ResourceMetadataRefresh.{0}".format(entry_id),
 			                               ResourceMetadataRefresh(entry_id),
 			                               1
 			                              )

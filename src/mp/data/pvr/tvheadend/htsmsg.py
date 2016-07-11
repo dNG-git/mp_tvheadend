@@ -33,12 +33,13 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from struct import pack, unpack
 
-from dNG.pas.data.binary import Binary
-from dNG.pas.data.settings import Settings
-from dNG.pas.runtime.io_exception import IOException
-from dNG.pas.runtime.socket_reader import SocketReader
-from dNG.pas.runtime.type_exception import TypeException
-from dNG.pas.runtime.value_exception import ValueException
+from dNG.data.binary import Binary
+from dNG.data.settings import Settings
+from dNG.runtime.io_exception import IOException
+from dNG.runtime.socket_reader import SocketReader
+from dNG.runtime.type_exception import TypeException
+from dNG.runtime.value_exception import ValueException
+
 from .htsbin import Htsbin
 
 class Htsmsg(dict):
@@ -46,7 +47,7 @@ class Htsmsg(dict):
 	"""
 Wrapper for a HTSMSG encoded message.
 
-:author:     direct Netware Group
+:author:     direct Netware Group et al.
 :copyright:  direct Netware Group - All rights reserved
 :package:    mp
 :subpackage: tvheadend
