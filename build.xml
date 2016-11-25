@@ -26,26 +26,26 @@ this program; if not, write to the Free Software Foundation, Inc.,
 https://www.direct-netware.de/redirect?licenses;gpl
 // -->
 <project name="mp_tvheadend" default="compile.mp.src">
-	<dirname property="mp.basedir" file="${ant.file}" />
-	<property file="${mp.basedir}/_extras/build.properties" />
+    <dirname property="mp.basedir" file="${ant.file}" />
+    <property file="${mp.basedir}/_extras/build.properties" />
 
-	<target name="compile.mp.src" description="Compile src.py ${ant.project.name}">
-		<exec executable="python">
-			<arg file="${pyBuilder.filePathName}" />
-			<arg value="--filetype=${pyBuilder.fileTypes}" />
-			<arg value="--include=${mp.basedir}/data/,${mp.basedir}/src/" />
-			<arg value="--strip_prefix=${mp.basedir}/" />
-			<arg value="--output_dirs_chmod=0755" />
-		</exec>
-	</target>
+    <target name="compile.mp.src" description="Compile src.py ${ant.project.name}">
+        <exec executable="python">
+            <arg file="${pyBuilder.filePathName}" />
+            <arg value="--filetype=${pyBuilder.fileTypes}" />
+            <arg value="--include=${mp.basedir}/data/,${mp.basedir}/src/" />
+            <arg value="--strip_prefix=${mp.basedir}/" />
+            <arg value="--output_dirs_chmod=0755" />
+        </exec>
+    </target>
 
-	<target name="compile.mp.unittest" description="Compile unittest.py ${ant.project.name}">
-		<exec executable="python">
-			<arg file="${pyBuilder.filePathName}" />
-			<arg value="--filetype=${pyBuilder.fileTypes}" />
-			<arg value="--include=${mp.basedir}/unittest/" />
-			<arg value="--strip_prefix=${mp.basedir}/" />
-			<arg value="--output_dirs_chmod=0755" />
-		</exec>
-	</target>
+    <target name="compile.mp.unittest" description="Compile unittest.py ${ant.project.name}">
+        <exec executable="python">
+            <arg file="${pyBuilder.filePathName}" />
+            <arg value="--filetype=${pyBuilder.fileTypes}" />
+            <arg value="--include=${mp.basedir}/unittest/" />
+            <arg value="--strip_prefix=${mp.basedir}/" />
+            <arg value="--output_dirs_chmod=0755" />
+        </exec>
+    </target>
 </project>
