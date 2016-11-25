@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 MediaProvider
@@ -34,8 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 from dNG.data.binary import Binary
 
 class Htsbin(Binary.BYTES_TYPE):
-#
-	"""
+    """
 Wrapper for a binary field value of an HTSMSG encoded message.
 
 :author:     direct Netware Group et al.
@@ -45,9 +43,7 @@ Wrapper for a binary field value of an HTSMSG encoded message.
 :since:      v0.1.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	pass
+    pass
 #
-
-##j## EOF

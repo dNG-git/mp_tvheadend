@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 MediaProvider
@@ -46,8 +45,7 @@ from mp.tasks.resource_pvr_recording_tvheadend_refresh import ResourcePvrRecordi
 from .abstract_manager import AbstractManager
 
 class TvheadendManager(AbstractManager):
-#
-	"""
+    """
 Tvheadend PVR manager.
 
 :author:     direct Netware Group et al.
@@ -57,40 +55,38 @@ Tvheadend PVR manager.
 :since:      v0.1.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	id = "tvheadend"
-	"""
+    id = "tvheadend"
+    """
 PVR manager identifier
-	"""
+    """
 
-	def __init__(self):
-	#
-		"""
+    def __init__(self):
+        """
 Constructor __init__(TvheadendManager)
 
 :since: v0.1.00
-		"""
+        """
 
-		AbstractManager.__init__(self)
+        AbstractManager.__init__(self)
 
-		self.client = None
-		"""
+        self.client = None
+        """
 Tvheadend client instance
-		"""
-		self._lock = ThreadLock()
-		"""
+        """
+        self._lock = ThreadLock()
+        """
 Thread safety lock
-		"""
-		self.recordings_cache = [ ]
-		"""
+        """
+        self.recordings_cache = [ ]
+        """
 Cached list of synchronized recordings
-		"""
-	#
+        """
+    #
 
-	def _handle_event(self, params, last_return = None):
-	#
-		"""
+    def _handle_event(self, params, last_return = None):
+        """
 Called for "mp.pvr.tvheadend.Client.onEvent"
 
 :param params: Parameter specified
@@ -98,97 +94,82 @@ Called for "mp.pvr.tvheadend.Client.onEvent"
 
 :return: (mixed) Return value
 :since:  v0.1.00
-		"""
+        """
 
-		if ("message" in params and "method" in params['message']):
-		#
-			message = params['message']
-			method = message['method']
+        if ("message" in params and "method" in params['message']):
+            message = params['message']
+            method = message['method']
 
-			if (method in ( "dvrEntryAdd", "dvrEntryUpdate" )):
-			#
-				_id = message['id']
+            if (method in ( "dvrEntryAdd", "dvrEntryUpdate" )):
+                _id = message['id']
 
-				MemoryTasks.get_instance().add("mp.tasks.ResourcePvrRecordingTvheadendRefresh.{0}".format(_id),
-				                               ResourcePvrRecordingTvheadendRefresh(self.get_container(), message, self.get_name()),
-				                               0
-				                              )
+                MemoryTasks.get_instance().add("mp.tasks.ResourcePvrRecordingTvheadendRefresh.{0}".format(_id),
+                                               ResourcePvrRecordingTvheadendRefresh(self.get_container(), message, self.get_name()),
+                                               0
+                                              )
 
-				if (self.recordings_cache is not None):
-				# Thread safety
-					with self._lock:
-					#
-						if (self.recordings_cache is not None): self.recordings_cache.append("{0}:///{1}".format(self.get_vfs_scheme(), _id))
-					#
-				#
-			#
-			elif (method == "dvrEntryDelete"):
-			#
-				_id = message['id']
-				resource = "{0}:///{1}".format(self.get_vfs_scheme(), _id)
+                if (self.recordings_cache is not None):
+                    with self._lock:
+                        # Thread safety
+                        if (self.recordings_cache is not None): self.recordings_cache.append("{0}:///{1}".format(self.get_vfs_scheme(), _id))
+                    #
+                #
+            elif (method == "dvrEntryDelete"):
+                _id = message['id']
+                resource = "{0}:///{1}".format(self.get_vfs_scheme(), _id)
 
-				MemoryTasks.get_instance().add("mp.tasks.ResourceDeleter.{0}".format(_id),
-				                               ResourceDeleter(resource),
-				                               0
-				                              )
+                MemoryTasks.get_instance().add("mp.tasks.ResourceDeleter.{0}".format(_id),
+                                               ResourceDeleter(resource),
+                                               0
+                                              )
 
-				if (self.recordings_cache is not None):
-				# Thread safety
-					with self._lock:
-					#
-						if (self.recordings_cache is not None
-						    and _id in self.recordings_cache
-						   ): self.recordings_cache.remove(resource)
-					#
-				#
-			#
-			elif (method == "initialSyncCompleted"):
-			#
-				with Connection.get_instance():
-				#
-					container = self.get_container()
-					children = container.get_content_list_of_type(MpEntryPvrRecording.TYPE_CDS_ITEM)
+                if (self.recordings_cache is not None):
+                    with self._lock:
+                        # Thread safety
+                        if (self.recordings_cache is not None
+                            and _id in self.recordings_cache
+                           ): self.recordings_cache.remove(resource)
+                    #
+                #
+            elif (method == "initialSyncCompleted"):
+                with Connection.get_instance():
+                    container = self.get_container()
+                    children = container.get_content_list_of_type(MpEntryPvrRecording.TYPE_CDS_ITEM)
 
-					with self._lock:
-					#
-						for entry in children:
-						#
-							if (isinstance(entry, MpEntryPvrRecording)):
-							#
-								entry_data = entry.get_data_attributes("id", "vfs_url")
+                    with self._lock:
+                        for entry in children:
+                            if (isinstance(entry, MpEntryPvrRecording)):
+                                entry_data = entry.get_data_attributes("id", "vfs_url")
 
-								if (entry_data['vfs_url'] not in self.recordings_cache):
-								#
-									MemoryTasks.get_instance().add("mp.tasks.ResourceDeleter.{0}".format(entry_data['id']),
-									                               ResourceDeleter(entry_data['vfs_url']),
-									                               0
-									                              )
-								#
-							#
-						#
-					#
-				#
+                                if (entry_data['vfs_url'] not in self.recordings_cache):
+                                    MemoryTasks.get_instance().add("mp.tasks.ResourceDeleter.{0}".format(entry_data['id']),
+                                                                   ResourceDeleter(entry_data['vfs_url']),
+                                                                   0
+                                                                  )
+                                #
+                            #
+                        #
+                    #
+                #
 
-				with self._lock: self.recordings_cache = None
-			#
-		#
-	#
+                with self._lock: self.recordings_cache = None
+            #
+        #
+    #
 
-	def get_vfs_scheme(self):
-	#
-		"""
+    def get_vfs_scheme(self):
+        """
 Returns the PVR manager VFS scheme.
 
 :return: (str) PVR manager VFS scheme
 :since:  v0.1.00
-		"""
+        """
 
-		return "x-tvheadend"
-	#
+        return "x-tvheadend"
+    #
 
-	def start(self, params = None, last_return = None):
-	#
-		"""
+    def start(self, params = None, last_return = None):
+        """
 Starts the activity of this manager.
 
 :param params: Parameter specified
@@ -196,24 +177,23 @@ Starts the activity of this manager.
 
 :return: (mixed) Return value
 :since:  v0.1.00
-		"""
+        """
 
-		Hook.register("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
+        Hook.register("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
 
-		self.client = Client.get_instance()
-		self.client.start()
-		self.client.enableAsyncMetadata()
+        self.client = Client.get_instance()
+        self.client.start()
+        self.client.enableAsyncMetadata()
 
-		self.name = self.client.get_server_name()
+        self.name = self.client.get_server_name()
 
-		AbstractManager.start(self, params, last_return)
+        AbstractManager.start(self, params, last_return)
 
-		return last_return
-	#
+        return last_return
+    #
 
-	def stop(self, params = None, last_return = None):
-	#
-		"""
+    def stop(self, params = None, last_return = None):
+        """
 Stops the activity of this manager.
 
 :param params: Parameter specified
@@ -221,44 +201,38 @@ Stops the activity of this manager.
 
 :return: (mixed) Return value
 :since:  v0.1.00
-		"""
+        """
 
-		if (self.client is not None):
-		#
-			self.client.stop()
-			self.client = None
+        if (self.client is not None):
+            self.client.stop()
+            self.client = None
 
-			Hook.unregister("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
-		#
+            Hook.unregister("mp.pvr.tvheadend.Client.onEvent", self._handle_event)
+        #
 
-		return last_return
-	#
+        return last_return
+    #
 
-	@staticmethod
-	def get_instance():
-	#
-		"""
+    @staticmethod
+    def get_instance():
+        """
 Get the TvheadendManager singleton.
 
 :return: (TvheadendManager) Object on success
 :since:  v0.1.00
-		"""
+        """
 
-		_return = None
+        _return = None
 
-		with TvheadendManager._instance_lock:
-		#
-			if (TvheadendManager._weakref_instance is not None): _return = TvheadendManager._weakref_instance()
+        with TvheadendManager._instance_lock:
+            if (TvheadendManager._weakref_instance is not None): _return = TvheadendManager._weakref_instance()
 
-			if (_return is None):
-			#
-				_return = TvheadendManager()
-				TvheadendManager._weakref_instance = ref(_return)
-			#
-		#
+            if (_return is None):
+                _return = TvheadendManager()
+                TvheadendManager._weakref_instance = ref(_return)
+            #
+        #
 
-		return _return
-	#
+        return _return
+    #
 #
-
-##j## EOF

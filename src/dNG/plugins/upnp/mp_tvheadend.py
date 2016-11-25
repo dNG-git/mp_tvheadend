@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 MediaProvider
@@ -37,8 +36,7 @@ from dNG.plugins.hook import Hook
 from mp.data.pvr.tvheadend_manager import TvheadendManager
 
 def get_singletons(params, last_return = None):
-#
-	"""
+    """
 Called for "mp.pvr.Manager.getSingletons"
 
 :param params: Parameter specified
@@ -46,41 +44,36 @@ Called for "mp.pvr.Manager.getSingletons"
 
 :return: (mixed) Return value
 :since:  v0.1.00
-	"""
+    """
 
-	if (type(last_return) is list): _return = last_return
-	else: _return = [ ]
+    if (type(last_return) is list): _return = last_return
+    else: _return = [ ]
 
-	_return.append(TvheadendManager.get_instance())
+    _return.append(TvheadendManager.get_instance())
 
-	return _return
+    return _return
 #
 
 def register_plugin():
-#
-	"""
+    """
 Register plugin hooks.
 
 :since: v0.1.00
-	"""
+    """
 
-	Settings.read_file("{0}/settings/mp/tvheadend.json".format(Settings.get("path_data")))
+    Settings.read_file("{0}/settings/mp/tvheadend.json".format(Settings.get("path_data")))
 
-	if (Settings.get("mp_tvheadend_enabled", False)):
-	#
-		Hook.register("mp.pvr.Manager.getSingletons", get_singletons)
-	#
+    if (Settings.get("mp_tvheadend_enabled", False)):
+        Hook.register("mp.pvr.Manager.getSingletons", get_singletons)
+    #
 #
 
 def unregister_plugin():
-#
-	"""
+    """
 Unregister plugin hooks.
 
 :since: v0.1.00
-	"""
+    """
 
-	Hook.unregister("mp.pvr.Manager.getSingletons", get_singletons)
+    Hook.unregister("mp.pvr.Manager.getSingletons", get_singletons)
 #
-
-##j## EOF
