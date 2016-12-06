@@ -33,6 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 # pylint: disable=import-error,no-name-in-module
 
 from dNG.data.binary import Binary
+from dNG.data.logging.log_line import LogLine
 from dNG.data.settings import Settings
 from dNG.data.upnp.resources.mp_entry_pvr_recording import MpEntryPvrRecording
 from dNG.database.connection import Connection
@@ -104,6 +105,7 @@ python.org: Flush and close this stream.
             if (self.handle_id is not None
                 and client.is_active()
                ): client.fileClose(id = self.handle_id)
+        except Exception as handled_exception: LogLine.error(handled_exception, context = "mp_tvheadend")
         finally:
             self.dvr_id = None
             self.handle_id = None
