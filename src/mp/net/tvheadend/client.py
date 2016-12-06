@@ -130,6 +130,10 @@ Listener socket mode
         """
 Local data handle
         """
+        self.lost_connection = False
+        """
+True after "handle_close()" has been called
+        """
         self._lock = ThreadLock()
         """
 Thread safety lock
@@ -223,7 +227,6 @@ Sends a API method call to the Tvheadend server.
         if (self.auth_digest is not None): params['digest'] = self.auth_digest
 
         with self._lock:
-            # Thread safety
             seq = self.seq
 
             self.seq += 1
@@ -393,7 +396,12 @@ python.org: Called when the socket is closed.
 :since: v0.1.00
         """
 
-        if (self.active): self.stop()
+        if (self.active):
+            if (self.log_handler is not None): self.log_handler.warning("mp.tvheadend.Client reporting: Socket closed - marked for reconnect", context = "mp_tvheadend")
+
+            self.stop()
+            self.lost_connection = True
+        #
     #
 
     def _handle_event(self, params, last_return = None):
@@ -434,7 +442,12 @@ on the channel's socket will succeed.
         try:
             message = Htsmsg.import_socket_data(self.socket)
 
-            if ("seq" in message):
+            if (message is None):
+                if (self.log_handler is not None): self.log_handler.warning("mp.tvheadend.Client reporting: Socket lost - marked for reconnect", context = "mp_tvheadend")
+
+                self.stop()
+                self.lost_connection = True
+            elif ("seq" in message):
                 with Client._instance_lock:
                     seq = message['seq']
 
@@ -453,7 +466,6 @@ on the channel's socket will succeed.
             elif (self.log_handler is not None): self.log_handler.error("mp.tvheadend.Client received async message without method", context = "mp_tvheadend")
         except Exception as handled_exception:
             if (self.log_handler is not None): self.log_handler.error(handled_exception, context = "mp_tvheadend")
-            self.stop()
         #
     #
 
@@ -464,6 +476,13 @@ Returns the PVR manager status.
 :return: (bool) True if active
 :since:  v0.1.00
         """
+
+        if (self.lost_connection):
+            with self._lock:
+                # Thread safety
+                if (self.lost_connection): self.start()
+            #
+        #
 
         return self.active
     #
@@ -481,7 +500,11 @@ Starts the prepared dispatcher in a new thread.
             with self._lock:
                 # Thread safety
                 is_already_active = self.active
-                if (not is_already_active): self.active = True
+
+                if (not is_already_active):
+                    self.active = True
+                    self.lost_connection = False
+                #
             #
 
             if (not is_already_active):
@@ -588,7 +611,7 @@ Waits for and returns the response.
         if (not self.active): raise IOException("Tvheadend client has stopped listening")
 
         _return = response_waiting_event.get_result()
-        if ("error" in _return): raise IOException("mp.tvheadend.Client reporting: {0}".format(_return['error']))
+        if ("error" in _return): raise IOException("mp.tvheadend.Client received error: {0}".format(_return['error']))
 
         return _return
     #
