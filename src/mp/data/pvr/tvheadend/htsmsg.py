@@ -178,7 +178,7 @@ Decodes binary HTSMSG field data.
                                            field_name,
                                            field_value
                                           )
-        elif (isinstance(data, Htsbin)): _return += Htsmsg._encode_field(Htsmsg.TYPE_BIN, field_name, data)
+        elif (isinstance(data, Htsbin)): _return = Htsmsg._encode_field(Htsmsg.TYPE_BIN, field_name, data)
         elif (isinstance(data, list)):
             field_value = Binary.BYTES_TYPE()
             for entry in data: field_value += Htsmsg._encode(entry)
