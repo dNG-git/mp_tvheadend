@@ -251,11 +251,13 @@ Imports a HTSMSG encoded message into this dict.
         """
 Imports a HTSMSG encoded message into this dict.
 
-:param message: HTSMSG encoded message
+:param _socket: Opened socket to read an HTSMSG encoded message from
 
-:return: (object) HTSMSG instance
+:return: (object) HTSMSG instance; None if closed
 :since:  v0.1.00
         """
+
+        _return = None
 
         timeout = int(Settings.get("mp_tvheadend_client_socket_data_timeout", 0))
         if (timeout < 1): timeout = int(Settings.get("pas_global_client_socket_data_timeout", 0))
@@ -265,15 +267,22 @@ Imports a HTSMSG encoded message into this dict.
         message = socket_reader.recv(Htsmsg.MESSAGE_LENGTH_SIZE)
         message_size = len(message)
 
-        if (message_size < Htsmsg.MESSAGE_LENGTH_SIZE): raise ValueException("HTSMSG is invalid")
-
-        message_length = unpack("!I", message)[0]
-        message += socket_reader.recv(message_length)
-
-        if (len(message) != Htsmsg.MESSAGE_LENGTH_SIZE + message_length):
-            raise IOException("Malformed HTSMSG body")
+        if (message_size < Htsmsg.MESSAGE_LENGTH_SIZE):
+            if (message_size < 1 or _socket.fileno() < 0): message = None
+            else: raise ValueException("HTSMSG is invalid")
         #
 
-        return Htsmsg.import_message(message)
+        if (message is not None):
+            message_length = unpack("!I", message)[0]
+            message += socket_reader.recv(message_length)
+
+            if (len(message) != Htsmsg.MESSAGE_LENGTH_SIZE + message_length):
+                raise IOException("Malformed HTSMSG body")
+            #
+
+            _return = Htsmsg.import_message(message)
+        #
+
+        return _return
     #
 #
